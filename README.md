@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project provides a backend system for allocating programs to users. The application allows administrators to manage programs (CRUD operations) and enables users to select and enroll in available programs.
+This project provides a backend system for allocating programs to users. The application allows administrators to manage programs (CRUD operations) and enables users to select and enroll in available [...]
 
 ## Features
 
@@ -17,6 +17,7 @@ This project provides a backend system for allocating programs to users. The app
 
 - **Backend Framework:** Spring (Java)
 - **Database:** PostgreSQL
+- **Java Version:** 17
 
 ## Getting Started
 
@@ -30,6 +31,7 @@ This project provides a backend system for allocating programs to users. The app
    - Create a database and update the `application.properties` or `application.yml` with your DB credentials.
 
 3. **Build and Run the Application**
+   - Make sure Java 17 is installed on your system.
    ```bash
    ./mvnw spring-boot:run
    ```
