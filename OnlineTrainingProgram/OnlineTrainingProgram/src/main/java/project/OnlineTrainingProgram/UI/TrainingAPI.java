@@ -2,23 +2,20 @@ package project.OnlineTrainingProgram.UI;
 
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import project.OnlineTrainingProgram.Model.TrainingModel;
 import project.OnlineTrainingProgram.Service.TrainingService;
 
 @RestController
 @RequestMapping("/api/training")
+@CrossOrigin(origins = "http://localhost:5173")
 public class TrainingAPI {
 	
 	@Autowired
 	private TrainingService trainingService;
 	
-	@GetMapping
+	@PostMapping
 	public String saveTraining(@RequestBody TrainingModel trainingModel) {
 		trainingService.saveTraining(trainingModel);
 		return "Training program saved successfully!";		
@@ -29,11 +26,13 @@ public class TrainingAPI {
 		return trainingService.getTrainingById(id);
 	}
 	
-	public List<TrainingModel>getAllTrainings(){
+	@GetMapping
+	public List<TrainingModel> getAllTrainings(){
 		return trainingService.getAllTrainings();
 		
 	}
 	
+	@DeleteMapping("/{id}")
 	public String deleteTraining(@PathVariable int id) {
 		trainingService.deleteTraining(id);
 		return "Training Program Deleted Successfully!";
