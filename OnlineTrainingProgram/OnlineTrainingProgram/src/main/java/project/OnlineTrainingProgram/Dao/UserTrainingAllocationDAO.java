@@ -36,6 +36,18 @@ public class UserTrainingAllocationDAO {
 
         }
     }
+    public UserTrainingAllocationModel getByUserIdAndTrainingId(int userId, int trainingId) {
+        // Example if using JPA/Hibernate:
+        return entityManager.createQuery(
+                        "SELECT a FROM UserTrainingAllocationModel a WHERE a.userId = :userId AND a.trainingId = :trainingId",
+                        UserTrainingAllocationModel.class)
+                .setParameter("userId", userId)
+                .setParameter("trainingId", trainingId)
+                .getResultStream()
+                .findFirst()
+                .orElse(null);
+    }
+
 
     public UserTrainingAllocationModel getAllocationById(int id) {
         ProgramAllocation entity = entityManager.find(ProgramAllocation.class, id);

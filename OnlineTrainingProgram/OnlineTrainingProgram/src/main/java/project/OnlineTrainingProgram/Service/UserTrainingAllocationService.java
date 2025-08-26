@@ -32,4 +32,14 @@ public class UserTrainingAllocationService {
     public void deleteAllocation(int id) {
         allocationDAO.delete(id);
     }
+    public boolean deleteAllocation(int userId, int trainingId) {
+        UserTrainingAllocationModel allocation = allocationDAO.getByUserIdAndTrainingId(userId, trainingId);
+
+        if (allocation != null) {
+            allocationDAO.delete(allocation.getUserId());  // delete by allocation id
+            return true;
+        }
+        return false;
+    }
+
 }
