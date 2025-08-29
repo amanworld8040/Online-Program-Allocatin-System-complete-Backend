@@ -9,12 +9,13 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/users")
+@CrossOrigin(origins = "http://localhost:5173")
 public class UserAPI {
 
     @Autowired
     private UserService userService;
 
-   
+    @PostMapping
     public String saveUser(@RequestBody UserModel user) {
         userService.saveUser(user);
         return "User saved successfully!";
