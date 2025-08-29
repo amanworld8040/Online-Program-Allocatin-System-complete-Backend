@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { allocationApi, userApi, trainingApi } from '../services/api';
+import { useAuth } from '../services/auth';
 import { Plus, Trash2, X, Calendar } from 'lucide-react';
 
 function AllocationManagement() {
+  const { user } = useAuth();
   const [allocations, setAllocations] = useState([]);
   const [users, setUsers] = useState([]);
   const [trainings, setTrainings] = useState([]);
@@ -12,27 +14,38 @@ function AllocationManagement() {
   const [formData, setFormData] = useState({
     userId: '',
     programId: '',
-    allocatedById: '1', // Default admin ID
+    allocatedById: user?.userId || '1',
     allocationDate: new Date().toISOString().split('T')[0]
   });
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (user) {
+      setFormData(prev => ({ ...prev, allocatedById: user.userId }));
+      fetchData();
+    }
+  }, [user]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
+      setError(null);
       const [allocationsRes, usersRes, trainingsRes] = await Promise.all([
-        allocationApi.getAllAllocations(),
-        userApi.getAllUsers(),
-        trainingApi.getAllTrainings()
+        allocationApi.getAllAllocations(user.userId),
+        userApi.getAllUsers(user.userId),
+        trainingApi.getAllTrainings(user.userId)
       ]);
-      setAllocations(allocationsRes.data);
-      setUsers(usersRes.data);
-      setTrainings(trainingsRes.data);
+      
+      if (allocationsRes.data.success) {
+        setAllocations(allocationsRes.data.allocations || []);
+      }
+      if (usersRes.data.success) {
+        setUsers(usersRes.data.users || []);
+      }
+      if (trainingsRes.data.success) {
+        setTrainings(trainingsRes.data.trainings || []);
+      }
     } catch (err) {
-      setError('Failed to fetch data');
+      setError(err.response?.data?.message || 'Failed to fetch data');
       console.error('Error fetching data:', err);
     } finally {
       setLoading(false);
@@ -63,10 +76,15 @@ function AllocationManagement() {
   const handleDelete = async (allocationId) => {
     if (window.confirm('Are you sure you want to delete this allocation?')) {
       try {
-        await allocationApi.deleteAllocation(allocationId);
-        await fetchData();
+        setError(null);
+        const response = await allocationApi.deleteAllocation(allocationId, user.userId);
+        if (response.data.success) {
+          await fetchData();
+        } else {
+          setError(response.data.message || 'Failed to delete allocation');
+        }
       } catch (err) {
-        setError('Failed to delete allocation');
+        setError(err.response?.data?.message || 'Failed to delete allocation');
         console.error('Error deleting allocation:', err);
       }
     }
@@ -76,7 +94,7 @@ function AllocationManagement() {
     setFormData({
       userId: '',
       programId: '',
-      allocatedById: '1',
+      allocatedById: user?.userId || '1',
       allocationDate: new Date().toISOString().split('T')[0]
     });
   };

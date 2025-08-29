@@ -1,52 +1,43 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-import { Users, BookOpen, UserCheck } from 'lucide-react';
-import UserManagement from './components/UserManagement';
-import TrainingManagement from './components/TrainingManagement';
-import AllocationManagement from './components/AllocationManagement';
-import Home from './components/Home';
+import { BrowserRouter as Router } from 'react-router-dom';
+import { AuthProvider, useAuth } from './services/auth';
+import LoginSignup from './components/LoginSignup';
+import AdminDashboard from './components/AdminDashboard';
+import UserDashboard from './components/UserDashboard';
 import './App.css';
+
+function AppContent() {
+  const { isAuthenticated, loading, isAdmin } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <LoginSignup />;
+  }
+
+  // Role-based dashboard rendering
+  return isAdmin ? <AdminDashboard /> : <UserDashboard />;
+}
 
 function App() {
   return (
-    <Router>
-      <div className="app">
-        <nav className="navbar">
-          <div className="nav-container">
-            <Link to="/" className="nav-logo">
-              Online Training System
-            </Link>
-            <div className="nav-menu">
-              <Link to="/" className="nav-item">
-                Home
-              </Link>
-              <Link to="/users" className="nav-item">
-                <Users size={16} />
-                Users
-              </Link>
-              <Link to="/trainings" className="nav-item">
-                <BookOpen size={16} />
-                Training Programs
-              </Link>
-              <Link to="/allocations" className="nav-item">
-                <UserCheck size={16} />
-                Allocations
-              </Link>
-            </div>
-          </div>
-        </nav>
-
-        <main className="main-content">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/users" element={<UserManagement />} />
-            <Route path="/trainings" element={<TrainingManagement />} />
-            <Route path="/allocations" element={<AllocationManagement />} />
-          </Routes>
-        </main>
-      </div>
-    </Router>
+    <AuthProvider>
+      <Router>
+        <div className="app">
+          <AppContent />
+        </div>
+      </Router>
+    </AuthProvider>
   );
 }
 
-export default App
+export default App;

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { trainingApi } from '../services/api';
+import { useAuth } from '../services/auth';
 import { Plus, Edit, Trash2, X } from 'lucide-react';
 
 function TrainingManagement() {
+  const { user } = useAuth();
   const [trainings, setTrainings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -22,10 +24,15 @@ function TrainingManagement() {
   const fetchTrainings = async () => {
     try {
       setLoading(true);
-      const response = await trainingApi.getAllTrainings();
-      setTrainings(response.data);
+      setError(null);
+      const response = await trainingApi.getAllTrainings(user.userId);
+      if (response.data.success) {
+        setTrainings(response.data.trainings || []);
+      } else {
+        setError(response.data.message || 'Failed to fetch training programs');
+      }
     } catch (err) {
-      setError('Failed to fetch training programs');
+      setError(err.response?.data?.message || 'Failed to fetch training programs');
       console.error('Error fetching trainings:', err);
     } finally {
       setLoading(false);
@@ -35,18 +42,29 @@ function TrainingManagement() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      setError(null);
       const trainingData = {
         ...formData,
         price: parseFloat(formData.price),
-        programId: editingTraining ? editingTraining.programId : 0
+        userId: user.userId
       };
+
+      let response;
+      if (editingTraining) {
+        response = await trainingApi.updateTraining(editingTraining.programId, trainingData);
+      } else {
+        response = await trainingApi.saveTraining(trainingData);
+      }
       
-      await trainingApi.saveTraining(trainingData);
-      await fetchTrainings();
-      resetForm();
-      setShowModal(false);
+      if (response.data.success) {
+        await fetchTrainings();
+        resetForm();
+        setShowModal(false);
+      } else {
+        setError(response.data.message || 'Failed to save training program');
+      }
     } catch (err) {
-      setError('Failed to save training program');
+      setError(err.response?.data?.message || 'Failed to save training program');
       console.error('Error saving training:', err);
     }
   };
@@ -65,10 +83,15 @@ function TrainingManagement() {
   const handleDelete = async (programId) => {
     if (window.confirm('Are you sure you want to delete this training program?')) {
       try {
-        await trainingApi.deleteTraining(programId);
-        await fetchTrainings();
+        setError(null);
+        const response = await trainingApi.deleteTraining(programId, user.userId);
+        if (response.data.success) {
+          await fetchTrainings();
+        } else {
+          setError(response.data.message || 'Failed to delete training program');
+        }
       } catch (err) {
-        setError('Failed to delete training program');
+        setError(err.response?.data?.message || 'Failed to delete training program');
         console.error('Error deleting training:', err);
       }
     }

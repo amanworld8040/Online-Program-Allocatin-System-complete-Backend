@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { userApi } from '../services/api';
+import { useAuth } from '../services/auth';
 import { Plus, Edit, Trash2, X } from 'lucide-react';
 
 function UserManagement() {
+  const { user } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -23,10 +25,15 @@ function UserManagement() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const response = await userApi.getAllUsers();
-      setUsers(response.data);
+      setError(null);
+      const response = await userApi.getAllUsers(user.userId);
+      if (response.data.success) {
+        setUsers(response.data.users || []);
+      } else {
+        setError(response.data.message || 'Failed to fetch users');
+      }
     } catch (err) {
-      setError('Failed to fetch users');
+      setError(err.response?.data?.message || 'Failed to fetch users');
       console.error('Error fetching users:', err);
     } finally {
       setLoading(false);
@@ -36,16 +43,27 @@ function UserManagement() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      setError(null);
+      const userData = {
+        ...formData,
+        adminUserId: user.userId
+      };
+      
       if (editingUser) {
-        await userApi.saveUser({ ...formData, userId: editingUser.userId });
-      } else {
-        await userApi.saveUser({ ...formData, userId: 0 });
+        userData.userId = editingUser.userId;
       }
-      await fetchUsers();
-      resetForm();
-      setShowModal(false);
+      
+      const response = await userApi.saveUser(userData);
+      
+      if (response.data.success) {
+        await fetchUsers();
+        resetForm();
+        setShowModal(false);
+      } else {
+        setError(response.data.message || 'Failed to save user');
+      }
     } catch (err) {
-      setError('Failed to save user');
+      setError(err.response?.data?.message || 'Failed to save user');
       console.error('Error saving user:', err);
     }
   };
@@ -65,10 +83,15 @@ function UserManagement() {
   const handleDelete = async (userId) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
       try {
-        await userApi.deleteUser(userId);
-        await fetchUsers();
+        setError(null);
+        const response = await userApi.deleteUser(userId, user.userId);
+        if (response.data.success) {
+          await fetchUsers();
+        } else {
+          setError(response.data.message || 'Failed to delete user');
+        }
       } catch (err) {
-        setError('Failed to delete user');
+        setError(err.response?.data?.message || 'Failed to delete user');
         console.error('Error deleting user:', err);
       }
     }
