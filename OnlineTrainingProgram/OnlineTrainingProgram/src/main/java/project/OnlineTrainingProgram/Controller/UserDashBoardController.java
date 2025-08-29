@@ -38,12 +38,21 @@ public class UserDashBoardController {
     @Autowired
     private UserTrainingAllocationService allocationService;
 
-    // 1. View Available Trainings
+    // 1. View Available Trainings (with status filtering)
     @GetMapping("/trainings")
-    public ResponseEntity<?> getAvailableTrainings() {
+    public ResponseEntity<?> getAvailableTrainings(@RequestParam(required = false) String status) {
         try {
             List<TrainingModel> trainings = trainingService.getAllTrainings();
             if (trainings == null) trainings = Collections.emptyList();
+            
+            // Filter by status if provided (usually "active" for users)
+            if (status != null && !status.isEmpty()) {
+                final String finalStatus = status;
+                trainings = trainings.stream()
+                        .filter(training -> finalStatus.equalsIgnoreCase(training.getStatus()))
+                        .collect(ArrayList::new, (list, item) -> list.add(item), ArrayList::addAll);
+            }
+            
             return ResponseEntity.ok(Map.of("success", true, "trainings", trainings));
         } catch (Exception e) {
             return ResponseEntity.status(500).body(Map.of("success", false, "message", "Server error: " + e.getMessage()));
@@ -75,6 +84,11 @@ public class UserDashBoardController {
                 return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Training not found"));
             }
 
+            // Check if training is active (users can only enroll in active trainings)
+            if (!"ACTIVE".equalsIgnoreCase(training.getStatus())) {
+                return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Can only enroll in active trainings"));
+            }
+
             // Check existing allocations for user
             List<UserTrainingAllocationModel> existing = allocationService.getAllocationsByUserId(userId);
             if (existing != null && existing.stream().anyMatch(a -> a.getProgramId() == trainingId)) {
@@ -94,7 +108,24 @@ public class UserDashBoardController {
         }
     }
 
-    // 3. View My Trainings
+    // 3. View My Enrollments (new endpoint)
+    @GetMapping("/my-enrollments")
+    public ResponseEntity<?> getMyEnrollments(@RequestParam int userId) {
+        try {
+            if (userService.getUserById(userId) == null) {
+                return ResponseEntity.badRequest().body(Map.of("success", false, "message", "User not found"));
+            }
+
+            List<UserTrainingAllocationModel> allocations = allocationService.getAllocationsByUserId(userId);
+            if (allocations == null) allocations = new ArrayList<>();
+
+            return ResponseEntity.ok(Map.of("success", true, "enrollments", allocations));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("success", false, "message", "Server error: " + e.getMessage()));
+        }
+    }
+
+    // 4. View My Trainings (legacy endpoint - keeping for backward compatibility)
     @GetMapping("/my-trainings/{userId}")
     public ResponseEntity<?> viewMyTrainings(@PathVariable int userId) {
         try {
@@ -111,7 +142,7 @@ public class UserDashBoardController {
         }
     }
 
-    // 4. Cancel My Enrollment
+    // 5. Cancel My Enrollment
     @DeleteMapping("/cancel-enrollment")
     public ResponseEntity<?> cancelEnrollment(@RequestBody Map<String, String> body) {
         try {
@@ -138,7 +169,7 @@ public class UserDashBoardController {
         }
     }
 
-    // 5. Logout
+    // 6. Logout (moved to AuthController, keeping for backward compatibility)
     @GetMapping("/logout")
     public ResponseEntity<?> logout() {
         return ResponseEntity.ok(Map.of("success", true, "message", "User logged out"));

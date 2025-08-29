@@ -20,14 +20,22 @@ public class AuthController {
 
     @PostMapping("/api/signup")
     public ResponseEntity<?> signup(@RequestBody(required = false) Map<String, String> body) {
+        if (body == null) body = new HashMap<>();
         String email = body.getOrDefault("email", "").toLowerCase().trim();
         String password = body.getOrDefault("password", "").trim();
+        String name = body.getOrDefault("name", "").trim();
+        String role = body.getOrDefault("role", "USER").toUpperCase().trim();
 
         if (email.isBlank() || password.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of(
                     "success", false,
                     "message", "Email and password are required"
             ));
+        }
+
+        // Validate role
+        if (!role.equals("USER") && !role.equals("ADMIN")) {
+            role = "USER"; // Default to USER for invalid roles
         }
 
         // check existing in DB via service
@@ -43,11 +51,18 @@ public class AuthController {
         UserModel user = new UserModel();
         user.setEmail(email);
         user.setPassword(password);
+        user.setName(name.isEmpty() ? email.split("@")[0] : name); // Use email prefix if no name provided
+        user.setRole(role);
         userService.saveUser(user);
 
         return ResponseEntity.ok(Map.of(
                 "success", true,
-                "user", Map.of("email", email),
+                "user", Map.of(
+                        "userId", user.getUserId(),
+                        "email", user.getEmail(),
+                        "name", user.getName(),
+                        "role", user.getRole()
+                ),
                 "token", "demo-token"
         ));
     }
@@ -81,8 +96,21 @@ public class AuthController {
 
         return ResponseEntity.ok(Map.of(
                 "success", true,
-                "user", Map.of("email", authenticated.getEmail()),
+                "user", Map.of(
+                        "userId", authenticated.getUserId(),
+                        "email", authenticated.getEmail(),
+                        "name", authenticated.getName() != null ? authenticated.getName() : authenticated.getEmail().split("@")[0],
+                        "role", authenticated.getRole() != null ? authenticated.getRole() : "USER"
+                ),
                 "token", "demo-token"
+        ));
+    }
+
+    @PostMapping("/api/logout")
+    public ResponseEntity<?> logout() {
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Logged out successfully"
         ));
     }
 }
